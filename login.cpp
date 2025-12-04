@@ -19,14 +19,18 @@ void loadStudents() {
     students.clear();
 
     string header;
-    getline(infile, header); // skip header line
+    getline(infile, header); // skip header
 
     while (infile >> sn) {
-        infile >> ws; // skip whitespace
-        getline(infile, nm, '\n'); // read full name and password
-        size_t pos = nm.rfind(' '); // find last space (before password)
-        pw = nm.substr(pos + 1);
-        nm = nm.substr(0, pos);
+        infile >> ws;
+        getline(infile, nm, '\n');
+        size_t pos = nm.rfind(' ');
+        if (pos != string::npos) {
+            pw = nm.substr(pos + 1);
+            nm = nm.substr(0, pos);
+        } else {
+            pw = "";
+        }
 
         students.push_back({sn, nm, pw});
     }
@@ -35,14 +39,10 @@ void loadStudents() {
 
 void saveStudents() {
     ofstream outfile("students.txt");
-
-    // Add header
     outfile << "StudentID Name Password\n";
-
     for (auto &s : students) {
         outfile << s.studentNumber << " " << s.name << " " << s.password << endl;
     }
-
     outfile.close();
 }
 
@@ -66,11 +66,9 @@ bool registerStudent() {
 
         if (s.password.length() < 4) {
             cout << "❌ Password must be at least 4 characters. Try again: ";
-        } 
-        else if (s.password.find(" ") != string::npos) {
+        } else if (s.password.find(" ") != string::npos) {
             cout << "❌ Password cannot contain spaces. Try again: ";
-        } 
-        else {
+        } else {
             break;
         }
     }
@@ -97,7 +95,6 @@ bool loginStudent() {
     while (true) {
         cout << "Enter Student Number: ";
         cin >> snInput;
-
         for (char &c : snInput) c = toupper(c);
 
         Student* found = nullptr;
@@ -114,16 +111,22 @@ bool loginStudent() {
         }
 
         string pwInput;
-        while (true) {
-            cout << "Enter Password: ";
-            cin >> pwInput;
+        cout << "Enter Password: ";
+        cin >> pwInput;
 
-            if (pwInput == found->password) {
-                cout << "✅ Welcome " << found->name << "! Login successful.\n";
-                return true;
-            } else {
-                cout << "❌ Incorrect password. Try again.\n";
-            }
+        if (pwInput == found->password) {
+            cout << "✅ Welcome " << found->name << "! Login successful.\n";
+
+            // --- CALL EXTERNAL MENU ---
+            #ifdef _WIN32
+                system("menu.exe");
+            #else
+                system("./menu");
+            #endif
+
+            return true;
+        } else {
+            cout << "❌ Incorrect password.\n";
         }
     }
 }
@@ -149,6 +152,7 @@ int main() {
         } else {
             cout << "Invalid choice!\n";
         }
-}
+    }
+
     return 0;
 }
