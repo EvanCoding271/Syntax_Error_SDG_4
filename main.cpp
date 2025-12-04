@@ -1,19 +1,8 @@
 #include <iostream>
-#include <fstream>
 #include <string>
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
 using namespace std;
 
-struct Student {
-    string studentNumber;
-    string name;
-    string password;
-};
-
+// Struct for a subject
 struct Subject {
     string name;
     string lesson;
@@ -21,181 +10,86 @@ struct Subject {
     string answers[5];
 };
 
-void clearScreen() {
-#ifdef _WIN32
-    system("cls");
-#else
-    system("clear");
-#endif
-}
+// Function to show a subject lesson and quiz
+void takeSubject(Subject &sub) {
+    string studentAnswer;
+    cout << "\n--- " << sub.name << " ---\n";
+    cout << sub.lesson << "\n\n";
 
-void waitForEnter() {
-    cout << "\nPress Enter to continue...";
-    cin.ignore();
-    cin.get();
-}
+    for (int i = 0; i < 5; i++) {
+        cout << "Question " << i + 1 << ": " << sub.questions[i] << "\n";
+        cout << "Answer: ";
+        getline(cin, studentAnswer);
 
-// Registration
-bool registerStudent() {
-    Student s;
-    cout << "\n--- Student Registration ---\n";
-    cout << "Enter Student Number: ";
-    cin >> s.studentNumber;
-
-    cout << "Enter Name: ";
-    cin.ignore();
-    getline(cin, s.name);
-
-    cout << "Enter Password: ";
-    cin >> s.password;
-
-    ifstream infile("students.txt");
-    string sn, nm, pw;
-    while (infile >> sn >> nm >> pw) {
-        if (sn == s.studentNumber) {
-            cout << "❌ Student already exists!\n";
-            return false;
-        }
-    }
-    infile.close();
-
-    ofstream outfile("students.txt", ios::app);
-    outfile << s.studentNumber << " " << s.name << " " << s.password << endl;
-    outfile.close();
-
-    cout << "✅ Registration successful!\n";
-    return true;
-}
-
-// Login
-bool loginStudent(string &studentName) {
-    string snInput, pwInput;
-    cout << "\n--- Student Login ---\n";
-    cout << "Enter Student Number: ";
-    cin >> snInput;
-    cout << "Enter Password: ";
-    cin >> pwInput;
-    cin.ignore();
-
-    ifstream infile("students.txt");
-    string sn, nm, pw;
-    bool loggedIn = false;
-
-    while (infile >> sn >> nm >> pw) {
-        if (sn == snInput && pw == pwInput) {
-            cout << "✅ Welcome " << nm << "! Login successful.\n";
-            studentName = nm;
-            loggedIn = true;
-            break;
-        }
-    }
-    infile.close();
-
-    if (!loggedIn) {
-        cout << "❌ Incorrect student number or password.\n";
+        if (studentAnswer == sub.answers[i])
+            cout << "✅ Correct!\n\n";
+        else
+            cout << "❌ Incorrect. Recommendation: Read the lesson carefully.\n\n";
     }
 
-    return loggedIn;
+    cout << "You finished all questions for " << sub.name << "!\n";
 }
 
-// Menu & lessons
-void showMenu() {
-    clearScreen();
-
+int main() {
+    // Step 1: Prepare subjects using array of structs
     Subject subjects[7] = {
         {"Math",
-         "Lesson: Addition and Subtraction\nAddition is combining numbers. Example: 2 + 3 = 5\nSubtraction is taking away numbers. Example: 5 - 2 = 3\nPractice these skills!",
+         "Addition and Subtraction\nAdd numbers together. Example: 2+3=5\nSubtract numbers. Example: 5-2=3.",
          {"3 + 4 = ?", "5 + 2 = ?", "10 - 3 = ?", "7 - 5 = ?", "6 + 2 = ?"},
          {"7", "7", "7", "2", "8"}},
+
         {"Science",
-         "Lesson: Plants\nPlants need sunlight, water, and soil to grow. They make food by photosynthesis.\nObserve and care for plants to learn better.",
+         "Plants\nPlants need sunlight, water, and soil. They make food through photosynthesis.",
          {"What do plants need to grow?", "What do plants make to get food?", "Do plants need sunlight?", "Do plants need water?", "Do plants need soil?"},
          {"Sunlight", "Food", "Yes", "Yes", "Yes"}},
+
         {"English",
-         "Lesson: Simple Sentences\nA sentence tells a complete idea. Example: I like apples.\nStart with a capital letter and end with a period.\nTry writing about daily life.",
+         "Simple Sentences\nA sentence tells a complete idea. Start with capital, end with period.",
          {"She ___ happy.", "I ___ apples.", "They ___ running.", "He ___ tall.", "We ___ playing."},
          {"is", "like", "are", "is", "are"}},
+
         {"Filipino",
-         "Lesson: Wika\nAng wika ay paraan ng pakikipag-usap. Pambansang wika ng Pilipinas ay Filipino.\nGamitin araw-araw para masanay.",
+         "Wika\nAng wika ay paraan ng pakikipag-usap. Pambansang wika ay Filipino.",
          {"Ano ang pambansang wika ng Pilipinas?", "Ano ang tawag sa paraan ng pakikipag-usap?", "Gaano kahalaga ang wika?", "Gamitin mo ba ang wika araw-araw?", "Wika ba ay mahalaga?"},
          {"Filipino", "Wika", "Mahalaga", "Oo", "Oo"}},
+
         {"Araling Panlipunan",
-         "Lesson: Philippine Heroes\nJose Rizal is a national hero. He wrote books to help people understand rights.\nOther heroes contributed to freedom.",
+         "Philippine Heroes\nJose Rizal is a national hero. He wrote books to teach people about rights.",
          {"Who is Jose Rizal?", "What did he write?", "Is he a national hero?", "Did he fight for freedom?", "Should we remember him?"},
          {"National Hero", "Books", "Yes", "Yes", "Yes"}},
+
         {"E.S.P",
-         "Lesson: Honesty\nHonesty means telling the truth. Builds trust and respect.",
+         "Honesty\nHonesty means telling the truth. It builds trust and respect.",
          {"What does honesty mean?", "Should we be honest?", "Honesty builds ___?", "Who should we be honest with?", "Is honesty good?"},
          {"Telling the truth", "Yes", "Trust", "Everyone", "Yes"}},
+
         {"P.E",
-         "Lesson: Exercise\nExercise helps body stay strong and healthy. Run, jump, or play games daily.",
+         "Exercise\nExercise keeps you healthy. You can run, jump, or play games.",
          {"Name one activity that is exercise.", "Does exercise make you healthy?", "Can you run to exercise?", "Is jumping exercise?", "Should we exercise daily?"},
          {"Running", "Yes", "Yes", "Yes", "Yes"}}
     };
 
-    int subjectChoice;
-    string studentAnswer;
-
-    cout << "\n=== STUDENT MENU ===\n";
-    cout << "Choose a subject to study:\n";
-    for (int i = 0; i < 7; i++) {
-        cout << i + 1 << ". " << subjects[i].name << endl;
-    }
-
-    cout << "Enter your choice: ";
-    cin >> subjectChoice;
-    cin.ignore();
-
-    if (subjectChoice < 1 || subjectChoice > 7) {
-        cout << "Invalid choice! Exiting menu.\n";
-        return;
-    }
-
-    int idx = subjectChoice - 1;
-    clearScreen();
-
-    cout << "\n--- " << subjects[idx].name << " ---\n";
-    cout << subjects[idx].lesson << "\n\n";
-
-    // 5 questions
-    for (int i = 0; i < 5; i++) {
-        cout << "Question " << i + 1 << ": " << subjects[idx].questions[i] << "\n";
-        cout << "Answer: ";
-        getline(cin, studentAnswer);
-        if (studentAnswer == subjects[idx].answers[i]) {
-            cout << "✅ Correct!\n\n";
-        } else {
-            cout << "❌ Incorrect. Recommendation: Read the lesson carefully.\n\n";
-        }
-    }
-
-    cout << "You finished all questions for " << subjects[idx].name << "!\n";
-    waitForEnter();
-}
-
-int main() {
     int choice;
-    string studentName;
 
-    while (true) {
-        cout << "\n=== Secondary Education Learning System ===\n";
-        cout << "1. Login\n2. Register\n3. Exit\n";
-        cout << "Choose an option: ";
+    do {
+        // Step 2: Show menu using data structure
+        cout << "\n=== STUDENT MENU ===\n";
+        cout << "Choose a subject to study:\n";
+        for (int i = 0; i < 7; i++)
+            cout << i + 1 << ". " << subjects[i].name << endl;
+        cout << "0. Exit\n";
+        cout << "Enter your choice: ";
         cin >> choice;
+        cin.ignore(); // clear buffer
 
-        if (choice == 1) {
-            if (loginStudent(studentName)) {
-                showMenu(); // call menu immediately after login
-            }
-        } else if (choice == 2) {
-            registerStudent();
-        } else if (choice == 3) {
-            cout << "Goodbye!\n";
-            break;
+        if (choice >= 1 && choice <= 7) {
+            takeSubject(subjects[choice - 1]);
+        } else if (choice == 0) {
+            cout << "Exiting menu...\n";
         } else {
-            cout << "Invalid choice!\n";
+            cout << "Invalid choice! Try again.\n";
         }
-    }
+    } while (choice != 0);
 
     return 0;
 }
