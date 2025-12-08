@@ -300,7 +300,7 @@ int main() {
             }
         }
 
-        cout << "\n8. View Report Card\n";
+        cout << "8. View Report Card\n";
         cout << "0. Exit Program\n";
         cout << "Enter your choice: ";
 
