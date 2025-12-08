@@ -4,6 +4,7 @@
 #include <vector>
 using namespace std;
 
+// ====================== STUDENT STRUCT ======================
 struct Student {
     string studentNumber;
     string name;
@@ -12,24 +13,84 @@ struct Student {
 
 vector<Student> students;
 
-// ---------------------- LOAD & SAVE --------------------------
+// ====================== ADMIN STRUCT ========================
+struct Admin {
+    string adminID;
+    string name;
+    string password;
+};
+
+vector<Admin> admins;
+
+// ====================== LOAD ADMINS =========================
+void loadAdmins() {
+    ifstream infile("admins.txt");
+    if (!infile) {
+        cout << "[ERROR] Cannot open admins.txt\n";
+        return;
+    }
+
+    string header;
+    getline(infile, header); // skip header: AdminID Name Password
+
+    while (infile) {
+        string id;
+        if (!(infile >> id)) break;
+
+        string rest;
+        getline(infile, rest);
+
+        // trim leading space
+        while (!rest.empty() && rest[0] == ' ')
+            rest.erase(rest.begin());
+
+        size_t pos = rest.rfind(' ');
+        string name = rest.substr(0, pos);
+        string pw = rest.substr(pos + 1);
+
+        admins.push_back({id, name, pw});
+    }
+}
+
+// ====================== CHECK ADMIN LOGIN ====================
+bool loginAdmin(const string& id, const string& pw) {
+    for (auto& a : admins) {
+        if (a.adminID == id && a.password == pw) {
+            cout << "\n=============================\n";
+            cout << "  ADMIN LOGIN SUCCESSFUL\n";
+            cout << "  Welcome, " << a.name << "!\n";
+            cout << "=============================\n";
+
+            // Open admin.exe
+            #ifdef _WIN32
+                system("admin.exe");
+            #else
+                system("./admin");
+            #endif
+
+            return true;
+        }
+    }
+    return false;
+}
+
+// ====================== LOAD STUDENTS ========================
 void loadStudents() {
     ifstream infile("students.txt");
     string sn, nm, pw;
     students.clear();
 
     string header;
-    getline(infile, header); // skip header
+    getline(infile, header);
 
     while (infile >> sn) {
         infile >> ws;
         getline(infile, nm, '\n');
+
         size_t pos = nm.rfind(' ');
         if (pos != string::npos) {
             pw = nm.substr(pos + 1);
             nm = nm.substr(0, pos);
-        } else {
-            pw = "";
         }
 
         students.push_back({sn, nm, pw});
@@ -37,6 +98,7 @@ void loadStudents() {
     infile.close();
 }
 
+// ====================== SAVE STUDENTS ========================
 void saveStudents() {
     ofstream outfile("students.txt");
     outfile << "StudentID Name Password\n";
@@ -46,7 +108,7 @@ void saveStudents() {
     outfile.close();
 }
 
-// ---------------------- REGISTER --------------------------
+// ====================== REGISTER STUDENT =====================
 bool registerStudent() {
     Student s;
     cout << "\n--- Student Registration ---\n";
@@ -59,7 +121,6 @@ bool registerStudent() {
     cout << "Enter Full Name: ";
     getline(cin, s.name);
 
-    // PASSWORD INPUT LOOP
     cout << "Enter Password: ";
     while (true) {
         getline(cin, s.password);
@@ -68,12 +129,9 @@ bool registerStudent() {
             cout << "❌ Password must be at least 4 characters. Try again: ";
         } else if (s.password.find(" ") != string::npos) {
             cout << "❌ Password cannot contain spaces. Try again: ";
-        } else {
-            break;
-        }
+        } else break;
     }
 
-    // Check duplicate
     for (auto &st : students) {
         if (st.studentNumber == s.studentNumber) {
             cout << "❌ Student already exists!\n";
@@ -87,59 +145,67 @@ bool registerStudent() {
     return true;
 }
 
-// ---------------------- LOGIN --------------------------
+// ========================= LOGIN ==============================
 bool loginStudent() {
-    string snInput;
-    cout << "\n--- Student Login ---\n";
+    string idInput, pwInput;
 
-    while (true) {
-        cout << "Enter Student Number: ";
-        cin >> snInput;
-        for (char &c : snInput) c = toupper(c);
+    cout << "\n--- Login ---\n";
+    cout << "Enter ID: ";
+    cin >> idInput;
 
-        Student* found = nullptr;
-        for (auto &s : students) {
-            if (s.studentNumber == snInput) {
-                found = &s;
-                break;
-            }
-        }
+    // Uppercase ID
+    for (char &c : idInput) c = toupper(c);
 
-        if (!found) {
-            cout << "❌ Student number not found. Try again.\n";
-            continue;
-        }
+    cout << "Enter Password: ";
+    cin >> pwInput;
 
-        string pwInput;
-        cout << "Enter Password: ";
-        cin >> pwInput;
+    // ========== FIRST CHECK IF ADMIN ==========
+    if (loginAdmin(idInput, pwInput)) {
+        return true;
+    }
 
-        if (pwInput == found->password) {
-            cout << "✅ Welcome " << found->name << "! Login successful.\n";
-
-            // --- CALL EXTERNAL MENU ---
-            #ifdef _WIN32
-                system("menu.exe");
-            #else
-                system("./menu");
-            #endif
-
-            return true;
-        } else {
-            cout << "❌ Incorrect password.\n";
+    // ========== ELSE CHECK STUDENT ============
+    Student* found = nullptr;
+    for (auto &s : students) {
+        if (s.studentNumber == idInput) {
+            found = &s;
+            break;
         }
     }
+
+    if (!found) {
+        cout << "❌ ID not found.\n";
+        return false;
+    }
+
+    if (pwInput != found->password) {
+        cout << "❌ Incorrect password.\n";
+        return false;
+    }
+
+    cout << "✅ Welcome " << found->name << "! Login successful.\n";
+
+    // open menu.exe
+    #ifdef _WIN32
+        system("menu.exe");
+    #else
+        system("./menu");
+    #endif
+
+    return true;
 }
 
-// ---------------------- MAIN --------------------------
+// =========================== MAIN =============================
 int main() {
     int choice;
-    loadStudents();
+
+    loadAdmins();   // load admin accounts
+    loadStudents(); // load students
 
     while (true) {
-        cout << "\n=== Student System ===\n";
+        cout << "\n=== System Login ===\n";
         cout << "1. Login\n";
-        cout << "2. Register\n";
+        cout << "2. Register (Student Only)\n";
         cout << "3. Exit\n";
         cout << "Choose an option: ";
         cin >> choice;
@@ -153,6 +219,5 @@ int main() {
             cout << "Invalid choice!\n";
         }
     }
-
     return 0;
 }
