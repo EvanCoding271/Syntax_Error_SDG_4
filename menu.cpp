@@ -1,26 +1,27 @@
 #include <iostream>
 #include <string>
-#include <algorithm> 
-#include <cstdlib>   
-#include <iomanip>   
-#include <fstream>   
-#include <sstream>   
-#include <cstdio>    // For the remove() function
+#include <algorithm>
+#include <cstdlib>
+#include <iomanip>
+#include <fstream>
+#include <sstream>
+#include <vector>
 
 using namespace std;
 
 struct LessonLevel {
     string lesson;
     string questions[5];
-    string answers[5];
+    string options[5][4]; // a/b/c/d options
+    char answers[5];       // correct options a/b/c/d
 };
 
 struct Subject {
     string name;
-    LessonLevel levels[3]; 
-    int currentLevel = 0; 
-    int scores[3] = {0, 0, 0}; 
-    double averageScore = 0.0; 
+    LessonLevel levels[3];
+    int currentLevel = 0;
+    int scores[3] = {0,0,0};
+    double averageScore = 0.0;
 };
 
 string toLower(string str) {
@@ -29,67 +30,144 @@ string toLower(string str) {
 }
 
 void clearScreen() {
-    #ifdef _WIN32
-        system("cls"); 
-    #else
-        system("clear");
-    #endif
+#ifdef _WIN32
+    system("cls");
+#else
+    system("clear");
+#endif
 }
 
+// ====================== PROGRESS MANAGEMENT ======================
+bool loadAllProgress(Subject subjects[], const string &studentID) {
+    ifstream inFile("student_progress.txt");
+    if(!inFile.is_open()) return false;
+
+    string line;
+    while(getline(inFile, line)) {
+        istringstream ss(line);
+        string id;
+        ss >> id;
+
+        if(id == studentID) {
+            for(int i=0;i<7;i++){
+                int level, s0,s1,s2;
+                if(ss >> level >> s0 >> s1 >> s2){
+                    subjects[i].currentLevel = level;
+                    subjects[i].scores[0] = s0;
+                    subjects[i].scores[1] = s1;
+                    subjects[i].scores[2] = s2;
+                }
+            }
+            inFile.close();
+            return true;
+        }
+    }
+
+    inFile.close();
+    return false; // student not found
+}
+
+void saveAllProgress(Subject subjects[], const string &studentID){
+    vector<string> allLines;
+    ifstream inFile("student_progress.txt");
+    string line;
+    bool found = false;
+
+    while(getline(inFile, line)) {
+        istringstream ss(line);
+        string id;
+        ss >> id;
+        if(id == studentID) {
+            string newLine = studentID;
+            for(int i=0;i<7;i++){
+                newLine += " " + to_string(subjects[i].currentLevel) +
+                           " " + to_string(subjects[i].scores[0]) +
+                           " " + to_string(subjects[i].scores[1]) +
+                           " " + to_string(subjects[i].scores[2]);
+            }
+            allLines.push_back(newLine);
+            found = true;
+        } else {
+            allLines.push_back(line);
+        }
+    }
+    inFile.close();
+
+    if(!found){
+        string newLine = studentID;
+        for(int i=0;i<7;i++){
+            newLine += " 0 0 0 0";
+        }
+        allLines.push_back(newLine);
+    }
+
+    ofstream outFile("student_progress.txt");
+    for(const string &l : allLines){
+        outFile << l << endl;
+    }
+    outFile.close();
+}
+
+// ====================== QUIZ & LESSON ======================
 void takeSubject(Subject &sub) {
     string studentAnswer;
     LessonLevel currentData = sub.levels[sub.currentLevel];
     int correctCount = 0;
 
-    for (int i = 0; i < 5; i++) {
-        clearScreen(); 
+    clearScreen();
+    cout << "\n=== " << sub.name << " - Level " << sub.currentLevel + 1 << " ===\n\n";
+    cout << currentData.lesson << "\n\n";
+    cout << "Press Enter to start the quiz...";
+    cin.ignore();
+    cin.get();
 
-        cout << "\n=== " << sub.name << " - Level " << sub.currentLevel + 1 << " ===\n\n";
-        cout << currentData.lesson << "\n\n"; 
+    for(int i=0;i<5;i++){
+        clearScreen();
+        cout << "\nQuestion " << i+1 << ": " << currentData.questions[i] << "\n";
+        cout << "a) " << currentData.options[i][0] << "  ";
+        cout << "b) " << currentData.options[i][1] << "\n";
+        cout << "c) " << currentData.options[i][2] << "  ";
+        cout << "d) " << currentData.options[i][3] << "\n";
+        cout << "Your answer (a/b/c/d): ";
+        cin >> studentAnswer;
+        studentAnswer = toLower(studentAnswer);
 
-        cout << "Question " << i + 1 << ": " << currentData.questions[i] << "\n";
-        cout << "Answer: ";
-        getline(cin, studentAnswer);
-
-        if (toLower(studentAnswer) == toLower(currentData.answers[i])) {
+        if(studentAnswer[0] == currentData.answers[i]){
             cout << "\n[RESULT] Correct!\n";
             correctCount++;
         } else {
-            cout << "\n[RESULT] Incorrect. Review the lesson content.\n";
+            cout << "\n[RESULT] Incorrect. Correct answer: " << currentData.answers[i] << "\n";
         }
-
         cout << "\nPress Enter to continue...";
-        cin.ignore(1000, '\n'); 
+        cin.ignore();
+        cin.get();
     }
-    
+
     sub.scores[sub.currentLevel] = correctCount;
-    
+
     clearScreen();
-    
-    if (sub.currentLevel < 2) { 
-        sub.currentLevel++; 
-        
+    if(sub.currentLevel < 2){
+        sub.currentLevel++;
         cout << "\n--- Level Complete ---\n";
         cout << "You scored " << correctCount << "/5 correct.\n";
         cout << "Difficulty for " << sub.name << " has increased!\n";
-        cout << "Press Enter to return to the main menu and try Level " << sub.currentLevel + 1 << "...\n";
-        
+        cout << "Press Enter to return to menu and try Level " << sub.currentLevel+1 << "...\n";
+        cin.ignore();
+        cin.get();
     } else {
         double totalScore = 0;
-        for (int score : sub.scores) {
-            totalScore += score;
-        }
-        sub.averageScore = (totalScore / 15.0) * 100.0; 
-        
+        for(int score : sub.scores) totalScore += score;
+        sub.averageScore = (totalScore/15.0)*100.0;
         cout << "\n*** Subject MASTERED ***\n";
-        cout << "You have finished all levels for " << sub.name << ".\n";
-        cout << "Your total score for this subject is " << fixed << setprecision(2) << sub.averageScore << "%.\n";
-        cout << "Press Enter to return to the main menu...";
+        cout << "You finished all levels for " << sub.name << ".\n";
+        cout << "Total score: " << fixed << setprecision(2) << sub.averageScore << "%\n";
+        cout << "Press Enter to return to menu...";
+        cin.ignore();
+        cin.get();
     }
-
-    cin.ignore(1000, '\n'); 
 }
 
+// ====================== REPORT CARD ======================
 void viewReportCard(Subject subjects[]) {
     clearScreen();
     cout << "\n=========================================\n";
@@ -98,288 +176,154 @@ void viewReportCard(Subject subjects[]) {
 
     double overallTotalScore = 0.0;
     int subjectsMasteredCount = 0;
-    
-    cout << setw(20) << left << "SUBJECT" << setw(15) << "SCORE (%)" << setw(15) << "LEVELS" << endl;
-    cout << string(50, '-') << endl;
 
-    for (int i = 0; i < 7; ++i) {
-        if (subjects[i].currentLevel == 2) {
-            double totalScore = 0;
-            for (int score : subjects[i].scores) {
-                totalScore += score;
-            }
-            subjects[i].averageScore = (totalScore / 15.0) * 100.0;
-            
+    cout << setw(20) << left << "SUBJECT" << setw(15) << "SCORE (%)" << setw(15) << "LEVELS" << endl;
+    cout << string(50,'-') << endl;
+
+    for(int i=0;i<7;i++){
+        if(subjects[i].currentLevel==2){
+            double totalScore=0;
+            for(int score:subjects[i].scores) totalScore+=score;
+            subjects[i].averageScore=(totalScore/15.0)*100.0;
+
             cout << setw(20) << left << subjects[i].name 
                  << setw(15) << fixed << setprecision(2) << subjects[i].averageScore
                  << setw(15) << "MASTERED" << endl;
-                 
+
             overallTotalScore += subjects[i].averageScore;
             subjectsMasteredCount++;
-            
         } else {
-            cout << setw(20) << left << subjects[i].name 
-                 << setw(15) << "N/A" 
-                 << setw(15) << "In Progress (Lvl " + to_string(subjects[i].currentLevel + 1) + ")" << endl;
+            cout << setw(20) << left << subjects[i].name
+                 << setw(15) << "N/A"
+                 << setw(15) << "In Progress (Lvl " << subjects[i].currentLevel+1 << ")" << endl;
         }
     }
-    
-    cout << string(50, '-') << endl;
-    
-    if (subjectsMasteredCount > 0) {
-        double overallAverage = overallTotalScore / subjectsMasteredCount;
-        cout << setw(20) << left << "OVERALL AVERAGE:"
+
+    cout << string(50,'-') << endl;
+    if(subjectsMasteredCount>0){
+        double overallAverage = overallTotalScore/subjectsMasteredCount;
+        cout << setw(20) << left << "OVERALL AVERAGE:" 
              << setw(15) << fixed << setprecision(2) << overallAverage << endl;
     } else {
         cout << "OVERALL AVERAGE: N/A (Complete at least one subject to calculate.)\n";
     }
 
-    cout << "\n-----------------------------------------\n";
-    cout << "Individual Level Scores (Correct Answers):\n";
-    
-    for (int i = 0; i < 7; ++i) {
-        cout << subjects[i].name << ": ";
-        if (subjects[i].currentLevel > 0) {
-            cout << "L1: " << subjects[i].scores[0] << "/5, ";
-        }
-        if (subjects[i].currentLevel > 1) {
-            cout << "L2: " << subjects[i].scores[1] << "/5, ";
-        }
-        if (subjects[i].currentLevel == 2) {
-            cout << "L3: " << subjects[i].scores[2] << "/5";
-        }
-        if (subjects[i].currentLevel == 0 && subjects[i].scores[0] == 0) {
-            cout << "No scores recorded yet.";
-        }
-        cout << endl;
-    }
-
-    cout << "\nPress Enter to return to the menu...";
-    cin.ignore(1000, '\n'); 
+    cout << "\nPress Enter to return to menu...";
+    cin.ignore();
+    cin.get();
 }
 
-void saveStudentData(Subject subjects[], const string& filename) {
-    ofstream outFile(filename);
-    if (outFile.is_open()) {
-        for (int i = 0; i < 7; ++i) {
-            outFile << subjects[i].name << " " 
-                    << subjects[i].currentLevel << " " 
-                    << subjects[i].scores[0] << " " 
-                    << subjects[i].scores[1] << " " 
-                    << subjects[i].scores[2] << endl;
-        }
-        outFile.close();
-        cout << "\nData saved successfully to " << filename << ".\n";
-    } else {
-        cout << "\nERROR: Unable to open file to save data.\n";
-    }
-}
-
-void loadStudentData(Subject subjects[], const string& filename) {
-    ifstream inFile(filename);
-    if (inFile.is_open()) {
-        string name;
-        int currentLevel, s0, s1, s2;
-        
-        for (int i = 0; i < 7; ++i) {
-            if (inFile >> name >> currentLevel >> s0 >> s1 >> s2) {
-                subjects[i].currentLevel = currentLevel;
-                subjects[i].scores[0] = s0;
-                subjects[i].scores[1] = s1;
-                subjects[i].scores[2] = s2;
-            } else {
-                break;
-            }
-        }
-        inFile.close();
-        cout << "\nData loaded successfully from " << filename << ".\n";
-    } else {
-        cout << "\nNo existing student data found for " << filename << ". Starting fresh.\n";
-    }
-}
-
-
+// ====================== MAIN ======================
 int main() {
+    // ====================== SUBJECTS + LESSONS + QUIZZES ======================
     Subject subjects[7] = {
-        {"Math",
-         { 
-             {"**Level 1: Addition, Subtraction, and Basic Multiplication**\n\n1. **Addition** combines groups to find the **sum**.\n2. **Subtraction** finds the **difference**.\n3. **Multiplication** is repeated addition.",
-              {"3 + 4 = ?", "5 + 2 = ?", "10 - 3 = ?", "7 - 5 = ?", "3 * 4 = ?"}, 
-              {"7", "7", "7", "2", "12"}},
+        {"Math", {
+            {"Addition & Subtraction", {"3+4=?","5+2=?","10-3=?","7-5=?","3*4=?"}, 
+             {{"6","7","5","8"},{"7","6","8","5"},{"7","6","5","3"},{"2","3","4","1"},{"12","11","10","9"}}, {'b','a','c','a','a'}},
+            {"Multiplication & Division", {"8*7=?","9*6=?","25/5=?","18/3=?","15+15=?"}, 
+             {{"54","56","55","58"},{"52","54","53","55"},{"5","6","4","3"},{"6","5","7","3"},{"30","25","35","20"}}, {'b','b','a','a','a'}},
+            {"Order of Operations", {"2^3=?","10-2*3=?","6+4/2=?","(1+3)*2=?","5*5=?"}, 
+             {{"6","8","9","7"},{"4","6","8","2"},{"8","7","6","9"},{"8","7","9","6"},{"25","20","15","30"}}, {'b','a','a','a','a'}}
+        },0},
 
-             {"**Level 2: Advanced Multiplication and Division**\n\n1. **Multiplication** involves larger factors.\n2. **Division** splits a number into equal groups. The result is the **quotient**.",
-              {"8 * 7 = ?", "9 * 6 = ?", "25 / 5 = ?", "18 / 3 = ?", "15 + 15 = ?"}, 
-              {"56", "54", "5", "6", "30"}},
-              
-             {"**Level 3: Order of Operations and Exponents**\n\n1. **PEMDAS/BODMAS** dictates the order of operations: Parentheses, Exponents, Multiplication/Division, Addition/Subtraction.\n2. **Exponents** indicate repeated multiplication (e.g., $2^3 = 2 \\times 2 \\times 2$).",
-              {"$2^3$ = ?", "10 - 2 * 3 = ?", "6 + 4 / 2 = ?", "(1 + 3) * 2 = ?", "5 * 5 = ?"}, 
-              {"8", "4", "8", "8", "25"}}
-         }, 0}, 
+        {"Science", {
+            {"Photosynthesis", {"Plants need to grow?","Process plants make food?","Gas absorbed by plants?","Gas released by plants?","Do plants need soil?"}, 
+             {{"sunlight","water","soil","air"},{"photosynthesis","respiration","digestion","pollination"},{"oxygen","carbon dioxide","nitrogen","hydrogen"},{"oxygen","carbon dioxide","nitrogen","hydrogen"},{"yes","no","sometimes","maybe"}}, {'a','a','b','a','a'}},
+            {"Cells", {"Basic unit of life?","Study of living things?","One biological kingdom?","Do animals have cells?","All living things have cells?"}, 
+             {{"cell","tissue","organ","organism"},{"biology","chemistry","physics","math"},{"animalia","plantae","fungi","protista"},{"yes","no","sometimes","maybe"},{"true","false","sometimes","maybe"}}, {'a','a','a','a','a'}},
+            {"Ecosystems", {"Producer in food web?","Ecosystem includes?","Consumer eats only plants?","Light living/non-living?","Sun powers most food webs?"}, 
+             {{"plants","animals","fungi","humans"},{"living/non-living","plants only","animals only","none"},{"herbivore","carnivore","omnivore","decomposer"},{"living","non-living","both","none"},{"true","false","maybe","sometimes"}}, {'a','a','a','b','a'}}
+        },0},
 
-        {"Science",
-         {
-             {"**Level 1: Photosynthesis and Plant Needs**\n\n1. **Plant Needs**: Plants require **sunlight**, **water**, and **soil**.\n2. **Photosynthesis**: Plants convert sun energy into **sugar (food)** and release **oxygen**.",
-              {"What do plants need to grow?", "What is the process plants use to make food?", "What gas do plants absorb from the air?", "What important gas do plants release?", "Do plants need soil?"},
-              {"sunlight", "photosynthesis", "carbon dioxide", "oxygen", "yes"}
-             },
-             {"**Level 2: Basic Cell Structure and Classification**\n\n1. The **cell** is the basic unit of life.\n2. Life is divided into **Kingdoms** (e.g., Animalia, Plantae, Fungi) based on characteristics.",
-              {"What is the basic unit of life?", "What is the study of living things called?", "Name one biological kingdom.", "Do animals have cells?", "True or False: All living things have cells."},
-              {"cell", "biology", "animalia", "yes", "true"}
-             },
-             {"**Level 3: Ecosystems and Food Webs**\n\n1. An **Ecosystem** is a community of living and non-living things interacting.\n2. A **Food Web** shows how energy flows through an ecosystem: Producers (plants) are eaten by Consumers (animals).",
-              {"What is a producer in a food web?", "What does an ecosystem include?", "What type of consumer eats only plants?", "Is light a living or non-living part of an ecosystem?", "True or False: The sun powers most food webs."},
-              {"plants", "living and non-living things", "herbivore", "non-living", "true"}
-             }
-         }, 0}, 
+        {"English", {
+            {"Simple Sentences", {"She ___ happy.","I ___ apples.","They ___ running.","He ___ tall.","We ___ playing."}, 
+             {{"is","are","am","be"},{"like","likes","liking","liked"},{"are","is","am","be"},{"is","are","am","be"},{"are","is","am","be"}}, {'a','a','a','a','a'}},
+            {"Compound Sentences", {"I like dogs ___ she likes cats.","We can go now ___ wait later.","He ran fast ___ he missed bus.","I studied, ___ I passed test.","Sun is hot ___ moon is cool."}, 
+             {{"and","but","so","or"},{"or","and","but","so"},{"but","and","so","or"},{"so","and","but","or"},{"and","but","so","or"}}, {'b','a','a','c','a'}},
+            {"Complex Sentences", {"___ it rained, we stayed inside.","I will call you ___ I get home.","She was happy ___ she won.","We left early ___ to avoid traffic.","I bought new book ___ finished old."}, 
+             {{"Because","When","Although","Since"},{"when","because","although","since"},{"because","although","when","since"},{"because","since","although","when"},{"after","before","since","when"}}, {'a','a','a','b','a'}}
+        },0},
 
-        {"English",
-         {
-             {"**Level 1: Simple Sentences and Punctuation**\n\nA **simple sentence** has one independent clause (one subject and one verb) and expresses a complete thought.",
-             {"She ___ happy.", "I ___ apples.", "They ___ running.", "He ___ tall.", "We ___ playing."},
-             {"is", "like", "are", "is", "are"}
-             },
-             {"**Level 2: Compound Sentences**\n\nA **compound sentence** joins two independent clauses using a coordinating conjunction (FANBOYS: For, And, Nor, But, Or, Yet, So) and a comma.",
-             {"I like dogs ___ she likes cats.", "We can go now ___ wait until later.", "He ran fast ___ he missed the bus.", "I studied, ___ I passed the test.", "The sun is hot ___ the moon is cool."},
-             {"but", "or", "but", "so", "and"}
-             },
-             {"**Level 3: Complex Sentences**\n\nA **complex sentence** contains one independent clause and one or more dependent clauses, linked by a subordinating conjunction (e.g., because, although, since, when, if).",
-             {"___ it rained, we stayed inside.", "I will call you ___ I get home.", "She was happy ___ she won the game.", "We left early ___ we wanted to avoid traffic.", "I bought a new book ___ I finished the old one."},
-             {"because", "when", "because", "since", "after"}
-             }
-        }, 0}, 
+        {"Filipino", {
+            {"Wika at Kultura", {"Pambansang wika ng Pilipinas?","Paraan ng pakikipag-usap?","Gaano kahalaga wika?","Gamitin araw-araw?","Wika ba mahalaga?"}, 
+             {{"Filipino","Tagalog","English","Spanish"},{"wika","kultura","panitikan","bansa"},{"mahalaga","hindi mahalaga","optional","di alam"},{"oo","hindi","paminsan","bihira"},{"oo","hindi","paminsan","bihira"}}, {'a','a','a','a','a'}},
+            {"Bahagi ng Pananalita", {"Bahay ay ___","Tumakbo ay ___","Maganda ay ___","Bahagi ng pananalita Pangngalan?","Pang-uri ba 'mabagal'?"}, 
+             {{"Pangngalan","Pandiwa","Pang-uri","Pang-abay"},{"Pangngalan","Pandiwa","Pang-uri","Pang-abay"},{"Pangngalan","Pandiwa","Pang-uri","Pang-abay"},{"Noun","Verb","Adjective","Adverb"},{"oo","hindi","paminsan","bihira"}}, {'a','b','c','a','a'}},
+            {"Wastong Gamit", {"Ako (may/mayroon) libro","Naglaro (ng/nang) malakas","Kailangan (ng/nang) payong","(May/Mayroon) bisita si lola","Ako kumain (ng/nang) saging"}, 
+             {{"may","mayroon","nang","ng"},{"ng","nang","may","mayroon"},{"ng","nang","may","mayroon"},{"May","Mayroon","ng","nang"},{"ng","nang","may","mayroon"}}, {'a','b','b','b','a'}}
+        },0},
 
-        {"Filipino",
-         {
-             {"**Level 1: Wika at Kultura**\n\nAng **wika** ay ang pangunahing paraan ng **pakikipag-ugnayan**. Ang pambansang wika ng Pilipinas ay **Filipino**.",
-             {"Ano ang pambansang wika ng Pilipinas?", "Ano ang tawag sa paraan ng pakikipag-usap?", "Gaano kahalaga ang wika?", "Gamitin mo ba ang wika araw-araw?", "Wika ba ay mahalaga?"},
-             {"filipino", "wika", "mahalaga", "oo", "oo"}
-             },
-             {"**Level 2: Bahagi ng Pananalita (Parts of Speech)**\n\nAng mga pangunahing bahagi ay **Pangngalan** (Noun), **Pandiwa** (Verb), at **Pang-uri** (Adjective).",
-             {"Ang salitang 'bahay' ay isang ___.", "Ang salitang 'tumakbo' ay isang ___.", "Ang salitang 'maganda' ay isang ___.", "Anong bahagi ng pananalita ang Pangngalan?", "Pang-uri ba ang salitang 'mabagal'?"},
-             {"pangngalan", "pandiwa", "pang-uri", "noun", "oo"}
-             },
-             {"**Level 3: Wastong Gamit ng mga Salita**\n\nAng tamang paggamit ng mga salitang may pagkakaiba (e.g., *may* vs. *mayroon*, *ng* vs. *nang*).",
-             {"Ano ang tamang gamit: Ako (may/mayroon) libro.", "Naglaro sila (ng/nang) malakas.", "Kailangan mo ba (ng/nang) payong?", "Anong tamang salita: (May/Mayroon) bisita si lola.", "Ako ay kumain (ng/nang) saging."},
-             {"may", "nang", "ng", "mayroon", "ng"}
-             }
-         }, 0}, 
+        {"Araling Panlipunan", {
+            {"Bayani", {"Who is Jose Rizal?","What did he write?","Is he hero?","Fight for freedom?","Remember him?"}, 
+             {{"National hero","Writer","Student","Teacher"},{"Books","Letters","Essays","None"},{"Yes","No","Maybe","False"},{"Yes","No","Maybe","False"},{"Yes","No","Maybe","False"}}, {'a','a','a','a','a'}},
+            {"Pamahalaan", {"Ilang sangay?","Sangay Presidente?","Sangay gumawa batas?","Korte Suprema?","Pinuno Ehekutibo?"}, 
+             {{"2","3","4","5"},{"Ehekutibo","Lehislatibo","Hudikatura","Pulis"},{"Lehislatibo","Hudikatura","Ehekutibo","Batas"},{"Hudikatura","Lehislatibo","Ehekutibo","Pulis"},{"Presidente","Senador","Mayor","Gobyerno"}}, {'b','a','a','a','a'}},
+            {"Heograpiya", {"Pilipinas arkipelago?","Dibisyon bansa?","Capital Pilipinas?","Ilan pangunahing isla?","True/False: Asia?"}, 
+             {{"Yes","No","Maybe","False"},{"Yes","No","Maybe","False"},{"Manila","Cebu","Davao","Quezon"},{"3","4","5","7"},{"True","False","Maybe","No"}}, {'a','a','a','a','a'}}
+        },0},
 
-        {"Araling Panlipunan",
-         {
-             {"**Level 1: Mga Bayani ng Pilipinas**\n\nAng ating mga **bayani** tulad ni **Jose Rizal** ay lumaban para sa kalayaan sa pamamagitan ng **edukasyon** at **pagsulat**.",
-             {"Who is Jose Rizal?", "What did he write?", "Is he a national hero?", "Did he fight for freedom?", "Should we remember him?"},
-             {"national hero", "books", "yes", "yes", "yes"}
-             },
-             {"**Level 2: Pamahalaan at Estruktura**\n\nAng pamahalaan ay may tatlong sangay: **Ehekutibo**, **Lehislatibo**, at **Hudikatura**.",
-             {"Ilang sangay mayroon ang pamahalaan?", "Ano ang sangay na pinamumunuan ng Presidente?", "Ano ang tawag sa sangay na gumagawa ng batas?", "Saan nabibilang ang Korte Suprema?", "Sino ang pinuno ng sangay Ehekutibo?"},
-             {"tatlo", "ehekutibo", "lehislatibo", "hudikatura", "presidente"}
-             },
-             {"**Level 3: Heograpiya at Rehiyon**\n\nAng Pilipinas ay isang **arkipelago** at nahahati sa maraming **rehiyon** at **lalawigan** (provinces).",
-             {"Ano ang tawag sa pagiging maraming isla ng Pilipinas?", "Ano ang tawag sa dibisyon ng bansa na may magkakatulad na kultura?", "Ano ang capital ng Pilipinas?", "Ilan ang pangunahing isla ng Pilipinas?", "True or False: Ang Pilipinas ay matatagpuan sa Asia."},
-             {"arkipelago", "rehiyon", "manila", "tatlo", "true"}
-             }
-         }, 0},
+        {"E.S.P", {
+            {"Honesty", {"Honesty meaning?","Should be honest?","Honesty builds?","Who be honest with?","Is honesty good?"}, 
+             {{"Truth","Lie","Confuse","Nothing"},{"Yes","No","Maybe","Sometimes"},{"Trust","Money","Fame","Happiness"},{"Everyone","Self","Family","None"},{"Yes","No","Maybe","Sometimes"}}, {'a','a','a','a','a'}},
+            {"Respeto", {"Paggalang sa kapwa?","Gawain takdang aralin responsibilidad?","Dapat igalang nakatatanda?","Sino respetuhin?","True/False responsable?"}, 
+             {{"Respeto","Huwag","Ignore","Mahalaga"},{"Yes","No","Sometimes","Maybe"},{"Yes","No","Sometimes","Maybe"},{"Lahat","Pamilya","Kaibigan","Teacher"},{"True","False","Maybe","Sometimes"}}, {'a','a','a','a','a'}},
+            {"Patriotism", {"Pagmamahal sa bayan?","Proud sa bansa?","Community part of ESP?","Ano gawin basura?","Tapon ilog pagmamahal?"}, 
+             {{"Patriotism","Love","Duty","Respect"},{"Yes","No","Maybe","Sometimes"},{"Yes","No","Maybe","Sometimes"},{"Itapon sa tama","Ilagay sa kalsada","Walang ginawa","Iba"},{"False","True","Maybe","Sometimes"}}, {'a','a','a','a','b'}}
+        },0},
 
-        {"E.S.P",
-         {
-             {"**Level 1: Honesty and Ethical Values**\n\nAng **Honesty (Katapatan)** ay ang pagsasabi ng **katotohanan** sa lahat ng oras. Ito ay nagtatatag ng **tiwala**.",
-             {"What does honesty mean?", "Should we be honest?", "Honesty builds ___?", "Who should we be honest with?", "Is honesty good?"},
-             {"telling the truth", "yes", "trust", "everyone", "yes"}
-             },
-             {"**Level 2: Respeto at Responsibilidad**\n\nAng **Respeto** ay paggalang sa kapwa, at ang **Responsibilidad** ay pagtupad sa mga tungkulin (duties).",
-             {"Ano ang ibig sabihin ng paggalang sa kapwa?", "Ang paggawa ba ng takdang aralin ay responsibilidad?", "Dapat ba nating igalang ang nakatatanda?", "Sino ang dapat nating respetuhin?", "True or False: Mahalaga ang pagiging responsable."},
-             {"respeto", "oo", "oo", "lahat", "true"}
-             },
-             {"**Level 3: Patriotism and Community**\n\nAng **Patriotism (Pagmamahal sa Bayan)** ay pagmamalaki sa ating bansa. Ang **Community Service** ay pagtulong sa komunidad.",
-             {"Ano ang tawag sa pagmamahal sa bayan?", "Dapat ba tayong maging proud sa ating bansa?", "Ang pagtulong ba sa komunidad ay bahagi ng E.S.P?", "Ano ang dapat nating gawin sa ating basura?", "True or False: Ang pagtatapon ng basura sa ilog ay pagmamahal sa bayan."},
-             {"patriotism", "oo", "oo", "itapon sa tama", "false"}
-             }
-         }, 0},
-
-        {"P.E",
-         {
-             {"**Level 1: Exercise, Fitness, and Health**\n\nAng **Exercise** ay mahalaga upang panatilihing **malakas at malusog** ang ating katawan. Kasama sa mga activity ang **pagtakbo** at **pagtalon**.",
-             {"Name one activity that is exercise.", "Does exercise make you healthy?", "Can you run to exercise?", "Is jumping exercise?", "Should we exercise daily?"},
-             {"running", "yes", "yes", "yes", "yes"}
-             },
-             {"**Level 2: Safety and First Aid**\n\nLaging mag-stretching bago at pagkatapos mag-ehersisyo. Ang **First Aid** ay agarang tulong sa nasaktan.",
-             {"Dapat bang mag-stretching bago mag-ehersisyo?", "Ano ang agarang tulong sa nasaktan?", "Ano ang tawag sa pag-iinit ng katawan bago mag-exercise?", "True or False: Ang ehersisyo ay nakasasama sa puso.", "Kapag may sugat, dapat ba itong linisin?"},
-             {"oo", "first aid", "stretching", "false", "oo"}
-             },
-             {"**Level 3: Nutrition and Balanced Diet**\n\nAng **Nutrition** ay ang pagkuha ng tamang pagkain. Ang **Balanced Diet** ay pagkain ng iba't ibang uri ng pagkain sa tamang dami.",
-             {"Ano ang tawag sa pagkain ng tamang uri at dami ng pagkain?", "Ang gulay ba ay masustansya?", "Anong sustansya ang nakukuha sa karne at itlog?", "Dapat ba nating bawasan ang pagkain ng matatamis?", "True or False: Kailangan natin ng protein para sa lakas ng buto."},
-             {"balanced diet", "oo", "protein", "oo", "false"}
-             }
-         }, 0}
+        {"P.E", {
+            {"Exercise", {"Activity is exercise?","Exercise healthy?","Can run to exercise?","Is jumping exercise?","Exercise daily?"}, 
+             {{"Running","Sleeping","Eating","Watching"},{"Yes","No","Maybe","Sometimes"},{"Yes","No","Maybe","Sometimes"},{"Yes","No","Maybe","Sometimes"},{"Yes","No","Maybe","Sometimes"}}, {'a','a','a','a','a'}},
+            {"Safety & First Aid", {"Stretch before exercise?","First Aid meaning?","Body warm up name?","Exercise bad for heart?","Clean wound?"}, 
+             {{"Yes","No","Sometimes","Maybe"},{"First Aid","Rest","Medicine","Help"},{"Stretching","Running","Eating","Jumping"},{"True","False","Maybe","Sometimes"},{"Yes","No","Maybe","Sometimes"}}, {'a','a','a','b','a'}},
+            {"Nutrition & Diet", {"Proper eating called?","Vegetables nutritious?","Protein from meat/eggs?","Reduce sweets?","Need protein for bones?"}, 
+             {{"Balanced diet","Unhealthy","Too much","Random"},{"Yes","No","Maybe","Sometimes"},{"Protein","Fat","Carbs","Vitamins"},{"Yes","No","Maybe","Sometimes"},{"Yes","No","Maybe","Sometimes"}}, {'a','a','a','a','b'}}
+        },0}
     };
 
     string studentID;
-    string studentFilename;
-    
-    // LOAD STUDENT ID FROM TEMP FILE (current_student_id.tmp created by login.cpp)
+
     ifstream tempFile("current_student_id.tmp");
-    if (tempFile.is_open()) {
+    if(tempFile.is_open()){
         getline(tempFile, studentID);
         tempFile.close();
-        // Remove the temporary file after reading
         remove("current_student_id.tmp");
     } else {
-        // Handle case if menu is run directly without login
         clearScreen();
-        cout << "\nFATAL ERROR: Student ID not found. Please log in using login.exe first.\n";
+        cout << "FATAL ERROR: Student ID not found. Use login.exe first.\n";
         cout << "Press Enter to exit...";
-        cin.ignore(1000, '\n'); 
+        cin.ignore();
         return 1;
     }
-    
-    // Auto-generate filename using the retrieved student ID
-    studentFilename = studentID + ".txt";
-    
+
     clearScreen();
-    cout << "\n=== WELCOME ===\n";
     cout << "Loading progress for Student ID: " << studentID << "\n";
-    loadStudentData(subjects, studentFilename);
+    loadAllProgress(subjects, studentID);
 
     int choice;
-
     do {
         clearScreen();
         cout << "\n=== STUDENT MENU (ID: " << studentID << ") ===\n";
         cout << "Choose a subject to study:\n";
-        
-        for (int i = 0; i < 7; i++) {
-            if (subjects[i].currentLevel == 2) {
-                cout << i + 1 << ". " << subjects[i].name << " (MASTERED!)" << endl;
-            } else {
-                cout << i + 1 << ". " << subjects[i].name << " (Level " << subjects[i].currentLevel + 1 << ")" << endl;
-            }
+        for(int i=0;i<7;i++){
+            if(subjects[i].currentLevel==2)
+                cout << i+1 << ". " << subjects[i].name << " (MASTERED!)\n";
+            else
+                cout << i+1 << ". " << subjects[i].name << " (Level " << subjects[i].currentLevel+1 << ")\n";
         }
-            
-        cout << "\n8. View Report Card\n";
-        cout << "0. Exit Program (Saves Data)\n";
-        cout << "Enter your choice: ";
-        
+        cout << "\n8. View Report Card\n0. Exit Program (Saves Data)\nEnter choice: ";
         cin >> choice;
-        cin.ignore(1000, '\n'); 
+        cin.ignore();
 
-        if (choice >= 1 && choice <= 7) {
-            if (subjects[choice - 1].currentLevel > 2) {
-                 cout << "\nYou have already mastered " << subjects[choice - 1].name << ". Press Enter to continue...\n";
-                 cin.ignore(1000, '\n');
-            } else {
-                takeSubject(subjects[choice - 1]);
-            }
-        } else if (choice == 8) {
-            viewReportCard(subjects);
+        if(choice>=1 && choice<=7) takeSubject(subjects[choice-1]);
+        else if(choice==8) viewReportCard(subjects);
+        else if(choice==0) saveAllProgress(subjects, studentID);
+        else {
+            cout << "Invalid choice. Press Enter to retry...";
+            cin.get();
         }
-         else if (choice == 0) {
-            saveStudentData(subjects, studentFilename);
-            cout << "\nExiting menu. Thank you for using the learning application.\n";
-        } else {
-            cout << "\nInvalid choice entered. Press Enter to retry...\n";
-            cin.ignore(1000, '\n');
-        }
-    } while (choice != 0);
+    } while(choice!=0);
 
+    cout << "Exiting program. Goodbye!\n";
     return 0;
 }
