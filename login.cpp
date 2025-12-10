@@ -181,6 +181,17 @@ bool loginStudent() {
             if (s.password == pwInput) {
                 cout << "✅ Welcome " << s.name << "! Login successful.\n";
 
+                // ✅ Save student ID to temp file for menu.cpp
+                ofstream tempFile("current_student_id.tmp");
+                if(tempFile.is_open()){
+                    tempFile << idInput;
+                    tempFile.close();
+                } else {
+                    cout << "ERROR: Cannot create temp file for menu.\n";
+                    return false;
+                }
+
+                // Launch menu program
 #ifdef _WIN32
                 system("menu.exe");
 #else
