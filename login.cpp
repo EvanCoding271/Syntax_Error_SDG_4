@@ -32,6 +32,16 @@ void clearConsole() {
 }
 
 // ====================== LOAD ADMINS ==========================
+// ====================== CLEAR SCREEN =========================
+void clearConsole() {
+#ifdef _WIN32
+    system("cls");
+#else
+    system("clear");
+#endif
+}
+
+// ====================== LOAD ADMINS ==========================
 void loadAdmins() {
     ifstream infile("admins.txt");
     if (!infile) {
@@ -41,6 +51,7 @@ void loadAdmins() {
 
     string header;
     getline(infile, header); // skip header
+    getline(infile, header); // skip header
 
     while (infile) {
         string id;
@@ -48,6 +59,7 @@ void loadAdmins() {
 
         string rest;
         getline(infile, rest);
+        while (!rest.empty() && rest[0] == ' ') rest.erase(rest.begin());
         while (!rest.empty() && rest[0] == ' ') rest.erase(rest.begin());
 
         size_t pos = rest.rfind(' ');
@@ -72,6 +84,11 @@ bool loginAdmin(const string& id, const string& pw) {
 #else
             system("./admin");
 #endif
+#ifdef _WIN32
+            system("admin.exe");
+#else
+            system("./admin");
+#endif
             return true;
         }
     }
@@ -81,6 +98,9 @@ bool loginAdmin(const string& id, const string& pw) {
 // ====================== LOAD STUDENTS ========================
 void loadStudents() {
     ifstream infile("students.txt");
+    if (!infile) return;
+
+    ifstream infile("loginrecord.txt");
     if (!infile) return;
 
     string sn, nm, pw;
@@ -94,6 +114,8 @@ void loadStudents() {
         getline(infile, nm, '\n');
 
         size_t pos = nm.rfind(' ');
+        pw = nm.substr(pos + 1);
+        nm = nm.substr(0, pos);
         pw = nm.substr(pos + 1);
         nm = nm.substr(0, pos);
 
@@ -115,6 +137,7 @@ bool registerStudent() {
     clearConsole();
     Student s;
 
+
     cout << "\n--- Student Registration ---\n";
     cout << "Enter Student Number: ";
     cin >> s.studentNumber;
@@ -129,9 +152,12 @@ bool registerStudent() {
         getline(cin, s.password);
 
         if (s.password.length() < 4)
+        if (s.password.length() < 4)
             cout << "❌ Password must be at least 4 characters. Try again: ";
         else if (s.password.find(" ") != string::npos)
+        else if (s.password.find(" ") != string::npos)
             cout << "❌ Password cannot contain spaces. Try again: ";
+        else break;
         else break;
     }
 
@@ -149,13 +175,22 @@ bool registerStudent() {
 }
 
 // ========================= STUDENT LOGIN =====================
+// ========================= STUDENT LOGIN =====================
 bool loginStudent() {
+    clearConsole();
     clearConsole();
     string idInput, pwInput;
 
     cout << "\n--- Student Login ---\n";
     cout << "Enter Student Number (or C to cancel): ";
+    cout << "\n--- Student Login ---\n";
+    cout << "Enter Student Number (or C to cancel): ";
     cin >> idInput;
+
+    if (idInput == "C" || idInput == "c") {
+        cout << "❌ Login cancelled.\n";
+        return false;
+    }
 
     if (idInput == "C" || idInput == "c") {
         cout << "❌ Login cancelled.\n";
@@ -175,7 +210,14 @@ bool loginStudent() {
 #ifdef _WIN32
                 system("menu.exe");
 #else
+#else
                 system("./menu");
+#endif
+                return true;
+            } else {
+                cout << "❌ Incorrect password.\n";
+                return false;
+            }
 #endif
                 return true;
             } else {
@@ -185,6 +227,9 @@ bool loginStudent() {
         }
     }
 
+    cout << "❌ Student not found.\n";
+    return false;
+}
     cout << "❌ Student not found.\n";
     return false;
 }
@@ -204,8 +249,24 @@ bool adminLoginMenu() {
     cin >> pw;
 
     return loginAdmin(id, pw);
+// ========================= ADMIN LOGIN MENU ==================
+bool adminLoginMenu() {
+    clearConsole();
+    string id, pw;
+
+    cout << "\n--- Admin Login ---\n";
+    cout << "Enter Admin ID (or C to cancel): ";
+    cin >> id;
+
+    if (id == "C" || id == "c") return false;
+
+    cout << "Enter Password: ";
+    cin >> pw;
+
+    return loginAdmin(id, pw);
 }
 
+// =========================== MAIN ============================
 // =========================== MAIN ============================
 int main() {
     loadAdmins();
@@ -213,6 +274,8 @@ int main() {
 
     while (true) {
         clearConsole();
+        int choice;
+
         int choice;
 
         cout << "\n=== Student System ===\n";
@@ -225,8 +288,11 @@ int main() {
 
         switch (choice) {
             case 1: adminLoginMenu(); break;
+            case 1: adminLoginMenu(); break;
             case 2: loginStudent(); break;
             case 3: registerStudent(); break;
+            case 4: cout << "Goodbye!\n"; return 0;
+            default: cout << "Invalid choice!\n";
             case 4: cout << "Goodbye!\n"; return 0;
             default: cout << "Invalid choice!\n";
         }
