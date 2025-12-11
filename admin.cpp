@@ -108,10 +108,11 @@ SubjectProgress convertProgress(
     const string &subjectName,
     int level, int a, int b, int c)
 {
-    int finished = 0;
+      int finished = 0;
     if (level == 0) finished = a;
     else if (level == 1) finished = a + b;
-    else finished = a + b + c;
+    else if (level == 2) finished = a + b + c;
+    else if (level >= 3) finished = a + b + c; 
 
     int total = (level + 1) * 5;
 
