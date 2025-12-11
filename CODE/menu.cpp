@@ -66,6 +66,34 @@ bool loadAllProgress(Subject subjects[], const string &studentID) {
     inFile.close();
     return false; // student not found
 }
+void initializeProgressIfMissing(const string& studentID) {
+    ifstream fin("student_progress.txt");
+    bool exists = false;
+    string id;
+
+    while (fin >> id) {
+        // skip 7 subjects × 4 fields = 28 numbers
+        for (int i = 0; i < 28; i++) {
+            string temp;
+            fin >> temp;
+        }
+        if (id == studentID) {
+            exists = true;
+            break;
+        }
+    }
+    fin.close();
+
+    if (!exists) {
+        ofstream fout("student_progress.txt", ios::app);
+        string line = studentID;
+        for (int i = 0; i < 7; i++) {
+            line += " 0 0 0 0"; 
+        }
+        fout << line << endl;
+        fout.close();
+    }
+}
 
 void saveAllProgress(Subject subjects[], const string &studentID){
     vector<string> allLines;
@@ -344,9 +372,14 @@ int main() {
         return 1;
     }
 
-    clearScreen();
-    cout << "Loading progress for Student ID: " << studentID << "\n";
-    loadAllProgress(subjects, studentID);
+initializeProgressIfMissing(studentID);
+
+
+loadAllProgress(subjects, studentID);
+
+clearScreen();
+cout << "Loading progress for Student ID: " << studentID << "\n";
+
 
     int choice;
     do {
