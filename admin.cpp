@@ -125,7 +125,7 @@ StudentRecord buildStudentRecord(const Student &s,
     rec.s = s;
 
     static const string SUBJECTS[7] =
-        {"Math","Science","English","Filipino","Araling","E.S.P","P.E"};
+        {"Math","Science","English","Filipino","Araling Panlipunan","E.S.P","P.E"};
 
     if (mp.count(s.id) == 0)
         return rec;
