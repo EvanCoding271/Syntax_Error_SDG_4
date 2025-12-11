@@ -20,6 +20,22 @@ struct Admin {
 vector<Student> students;
 vector<Admin> admins;
 
+// ====================== PROPER CASE FUNCTION ======================
+string toProperCase(string name) {
+    bool cap = true;
+    for (int i = 0; i < name.length(); i++) {
+        if (isspace(name[i])) {
+            cap = true;
+        } else if (cap) {
+            name[i] = toupper(name[i]);
+            cap = false;
+        } else {
+            name[i] = tolower(name[i]);
+        }
+    }
+    return name;
+}
+
 // ====================== CLEAR SCREEN ======================
 void clearConsole() {
 #ifdef _WIN32
@@ -38,7 +54,7 @@ void loadAdmins() {
     }
 
     string header;
-    getline(infile, header); // skip header
+    getline(infile, header);
 
     while (infile) {
         string id;
@@ -52,6 +68,8 @@ void loadAdmins() {
         string name = rest.substr(0, pos);
         string pw = rest.substr(pos + 1);
 
+        name = toProperCase(name);  // <-- FIX NAME FORMAT HERE
+
         admins.push_back({id, name, pw});
     }
 }
@@ -62,7 +80,7 @@ bool loginAdmin(const string& id, const string& pw) {
         if (a.adminID == id && a.password == pw) {
             cout << "\n=============================\n";
             cout << "  ADMIN LOGIN SUCCESSFUL\n";
-            cout << "  Welcome, " << a.name << "!\n";
+            cout << "  Welcome, " << a.name << "!\n"; // proper format
             cout << "=============================\n";
 
 #ifdef _WIN32
@@ -111,6 +129,8 @@ void loadStudents() {
         string pw = nm_pw.substr(pos + 1);
         string nm = nm_pw.substr(0, pos);
 
+        nm = toProperCase(nm); // <-- FIX NAME FORMAT HERE
+
         students.push_back({sn, nm, pw});
     }
 }
@@ -137,6 +157,7 @@ bool registerStudent() {
     cin.ignore();
     cout << "Enter Full Name: ";
     getline(cin, s.name);
+    s.name = toProperCase(s.name); // <-- Convert to Proper Case
 
     cout << "Enter Password: ";
     getline(cin, s.password);
@@ -181,17 +202,15 @@ bool loginStudent() {
             if (s.password == pwInput) {
                 cout << "✅ Welcome " << s.name << "! Login successful.\n";
 
-                // ✅ Save student ID to temp file for menu.cpp
                 ofstream tempFile("current_student_id.tmp");
                 if(tempFile.is_open()){
                     tempFile << idInput;
                     tempFile.close();
                 } else {
-                    cout << "ERROR: Cannot create temp file for menu.\n";
+                    cout << "ERROR: Cannot create temp file.\n";
                     return false;
                 }
 
-                // Launch menu program
 #ifdef _WIN32
                 system("menu.exe");
 #else
