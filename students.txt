@@ -49,3 +49,4 @@ StudentID Name Password
 423005720 Ulysses 9393
 423005721 Vanna 9494
 425005673 Evander 1234
+STU424002958 Jade Deguia pass123
