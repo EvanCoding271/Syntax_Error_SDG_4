@@ -50,3 +50,5 @@ StudentID Name Password
 423005721 Vanna 9494
 425005673 Evander 1234
 STU424002958 Jade Deguia pass123
+44444444 Evan pass
+424004454 Evilhero ban123
