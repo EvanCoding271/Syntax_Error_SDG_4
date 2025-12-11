@@ -31,7 +31,7 @@ void clearConsole() {
 
 // ====================== LOAD ADMINS ======================
 void loadAdmins() {
-    ifstream infile("C:\\Users\\mypc\\Downloads\\asdfghjkl\\INPUT DATA\\admins.txt");
+    ifstream infile("../INPUT DATA/admins.txt");
     if (!infile) {
         cout << "[ERROR] Cannot open admins.txt\n";
         return;
@@ -67,8 +67,10 @@ bool loginAdmin(const string& id, const string& pw) {
 
 #ifdef _WIN32
             system("admin.exe");
+            exit(0);  // Exit login.exe after launching admin.exe
 #else
             system("./admin");
+            exit(0);
 #endif
             return true;
         }
@@ -94,7 +96,7 @@ bool adminLoginMenu() {
 
 // ====================== LOAD STUDENTS ======================
 void loadStudents() {
-    ifstream infile("C:\\Users\\mypc\\Downloads\\asdfghjkl\\INPUT DATA\\students.txt");
+    ifstream infile("../INPUT DATA/students.txt");
     if (!infile) return;
 
     students.clear();
@@ -117,11 +119,12 @@ void loadStudents() {
 
 // ====================== SAVE STUDENTS ======================
 void saveStudents() {
-    ofstream outfile("C:\\Users\\mypc\\Downloads\\asdfghjkl\\INPUT DATA\\students.txt");
+    ofstream outfile("../INPUT DATA/students.txt");  // FIXED: Added slash
     outfile << "StudentID Name Password\n";
     for (auto& s : students) {
         outfile << s.studentNumber << " " << s.name << " " << s.password << endl;
     }
+    outfile.close();
 }
 
 // ====================== REGISTER STUDENT ======================
@@ -181,7 +184,8 @@ bool loginStudent() {
             if (s.password == pwInput) {
                 cout << " Welcome " << s.name << "! Login successful.\n";
 
-                //  Save student ID to temp file for menu.cpp
+                // Save student ID to temp file for menu.cpp
+                // Store in BUILD folder where menu.exe will look for it
                 ofstream tempFile("current_student_id.tmp");
                 if(tempFile.is_open()){
                     tempFile << idInput;
@@ -194,8 +198,10 @@ bool loginStudent() {
                 // Launch menu program
 #ifdef _WIN32
                 system("menu.exe");
+                exit(0);  // Exit login.exe after launching menu.exe
 #else
                 system("./menu");
+                exit(0);
 #endif
                 return true;
             } else {

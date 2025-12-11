@@ -50,7 +50,7 @@ string trim(const string &str) {
 // ----------------- LOAD STUDENTS.TXT -----------------------
 // ----------------------------------------------------------
 
-vector<Student> loadStudents(const string &filename = "C:\\Users\\mypc\\Downloads\\asdfghjkl\\INPUT DATA\\students.txt") {
+vector<Student> loadStudents(const string &filename = "../INPUT DATA/students.txt") {
     vector<Student> students;
     ifstream in(filename);
     if (!in.is_open()) {
@@ -84,7 +84,7 @@ struct ProgressRow {
 
 unordered_map<string, ProgressRow> loadProgressFile() {
     unordered_map<string, ProgressRow> mp;
-    ifstream in("C:\\Users\\mypc\\Downloads\\asdfghjkl\\INPUT DATA\\student_progress.txt");
+    ifstream in("../INPUT DATA/student_progress.txt");
     if (!in.is_open()) return mp;
 
     while (!in.eof()) {

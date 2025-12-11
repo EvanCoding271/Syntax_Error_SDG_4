@@ -1,6 +1,23 @@
 {
+    "C_Cpp.default.compilerPath": "g++",
     "files.associations": {
-        "iostream": "cpp"
+        "*.cpp": "cpp"
     },
-    "C_Cpp.default.compilerPath": "C:/msys64/mingw64/bin/g++.exe",
+    
+    // DISABLE auto build from C/C++ extension
+    "C_Cpp.autocomplete": "disabled",
+    "C_Cpp.default.compileCommands": "",
+    
+    // SET output directory explicitly
+    "code-runner.executorMap": {
+        "cpp": "cd $workspaceRoot && g++ CODE\\$fileName -o BUILD\\$fileNameWithoutExt.exe && BUILD\\$fileNameWithoutExt.exe"
+    },
+    "code-runner.cwd": "$workspaceRoot",
+    "code-runner.saveFileBeforeRun": true,
+    
+    // Prevent any other output
+    "files.exclude": {
+        "CODE/**/*.exe": true,
+        "CODE/**/*.o": true
+    }
 }

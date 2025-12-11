@@ -39,7 +39,7 @@ void clearScreen() {
 
 // ====================== PROGRESS MANAGEMENT ======================
 bool loadAllProgress(Subject subjects[], const string &studentID) {
-    ifstream inFile("C:\\Users\\mypc\\Downloads\\asdfghjkl\\INPUT DATA\\student_progress.txt");
+    ifstream inFile("../INPUT DATA/student_progress.txt");
     if(!inFile.is_open()) return false;
 
     string line;
@@ -66,8 +66,9 @@ bool loadAllProgress(Subject subjects[], const string &studentID) {
     inFile.close();
     return false; // student not found
 }
+
 void initializeProgressIfMissing(const string& studentID) {
-    ifstream fin("C:\\Users\\mypc\\Downloads\\asdfghjkl\\INPUT DATA\\student_progress.txt");
+    ifstream fin("../INPUT DATA/student_progress.txt");
     bool exists = false;
     string id;
 
@@ -85,7 +86,7 @@ void initializeProgressIfMissing(const string& studentID) {
     fin.close();
 
     if (!exists) {
-        ofstream fout("C:\\Users\\mypc\\Downloads\\asdfghjkl\\INPUT DATA\\student_progress.txt", ios::app);
+        ofstream fout("../INPUT DATA/student_progress.txt", ios::app);
         string line = studentID;
         for (int i = 0; i < 7; i++) {
             line += " 0 0 0 0"; 
@@ -97,7 +98,7 @@ void initializeProgressIfMissing(const string& studentID) {
 
 void saveAllProgress(Subject subjects[], const string &studentID){
     vector<string> allLines;
-    ifstream inFile("C:\\Users\\mypc\\Downloads\\asdfghjkl\\INPUT DATA\\student_progress.txt");
+    ifstream inFile("../INPUT DATA/student_progress.txt");
     string line;
     bool found = false;
 
@@ -129,7 +130,7 @@ void saveAllProgress(Subject subjects[], const string &studentID){
         allLines.push_back(newLine);
     }
 
-    ofstream outFile("C:\\Users\\mypc\\Downloads\\asdfghjkl\\INPUT DATA\\student_progress.txt");
+    ofstream outFile("../INPUT DATA/student_progress.txt");
     for(const string &l : allLines){
         outFile << l << endl;
     }
@@ -359,27 +360,29 @@ int main() {
 
     string studentID;
 
+    // FIXED: Look for temp file in current directory (BUILD folder)
     ifstream tempFile("current_student_id.tmp");
     if(tempFile.is_open()){
         getline(tempFile, studentID);
         tempFile.close();
-        remove("current_student_id.tmp");
+        remove("current_student_id.tmp");  // Delete temp file after reading
     } else {
         clearScreen();
         cout << "FATAL ERROR: Student ID not found. Use login.exe first.\n";
         cout << "Press Enter to exit...";
         cin.ignore();
+        cin.get();
         return 1;
     }
 
-initializeProgressIfMissing(studentID);
+    initializeProgressIfMissing(studentID);
+    loadAllProgress(subjects, studentID);
 
-
-loadAllProgress(subjects, studentID);
-
-clearScreen();
-cout << "Loading progress for Student ID: " << studentID << "\n";
-
+    clearScreen();
+    cout << "Loading progress for Student ID: " << studentID << "\n";
+    cout << "Press Enter to continue...";
+    cin.ignore();
+    cin.get();
 
     int choice;
     do {
@@ -406,5 +409,8 @@ cout << "Loading progress for Student ID: " << studentID << "\n";
     } while(choice!=0);
 
     cout << "Exiting program. Goodbye!\n";
+    cout << "Press Enter to exit...";
+    cin.ignore();
+    cin.get();
     return 0;
 }
