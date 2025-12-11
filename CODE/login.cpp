@@ -31,7 +31,7 @@ void clearConsole() {
 
 // ====================== LOAD ADMINS ======================
 void loadAdmins() {
-    ifstream infile("admins.txt");
+    ifstream infile("C:\\Users\\mypc\\Downloads\\asdfghjkl\\INPUT DATA\\admins.txt");
     if (!infile) {
         cout << "[ERROR] Cannot open admins.txt\n";
         return;
@@ -94,7 +94,7 @@ bool adminLoginMenu() {
 
 // ====================== LOAD STUDENTS ======================
 void loadStudents() {
-    ifstream infile("students.txt");
+    ifstream infile("C:\\Users\\mypc\\Downloads\\asdfghjkl\\INPUT DATA\\students.txt");
     if (!infile) return;
 
     students.clear();
@@ -117,7 +117,7 @@ void loadStudents() {
 
 // ====================== SAVE STUDENTS ======================
 void saveStudents() {
-    ofstream outfile("students.txt");
+    ofstream outfile("C:\\Users\\mypc\\Downloads\\asdfghjkl\\INPUT DATA\\students.txt");
     outfile << "StudentID Name Password\n";
     for (auto& s : students) {
         outfile << s.studentNumber << " " << s.name << " " << s.password << endl;
